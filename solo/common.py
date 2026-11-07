@@ -1,6 +1,6 @@
 import typing
 
-# 即死(壁激突 or 自分に突っ込む) 回避する方向を4方向から絞る
+
 def get_safe_moves(
     game_state: typing.Dict,
 ) -> typing.Tuple[
@@ -10,30 +10,16 @@ def get_safe_moves(
     """Return safe moves and their destination coordinates."""
     is_move_safe = {"up": True, "down": True, "left": True, "right": True}
 
-    my_head = game_state["you"]["body"][0]
-    my_neck = game_state["you"]["body"][1]
-    board_width = game_state["board"]["width"]
-    board_height = game_state["board"]["height"]
-
-    danger_map = [
-        [0 for _ in range(board_width + 2)]
-        for _ in range(board_height + 2)
-    ]
-
-    for x in range(board_width + 2):
-        danger_map[0][x] = -1
-        danger_map[board_height + 1][x] = -1
-
-    for y in range(board_height + 2):
-        danger_map[y][0] = -1
-        danger_map[y][board_width + 1] = -1
-
-    remaining_length = game_state["you"]["length"]
-    for body_part in game_state["you"]["body"]:
-        map_x = body_part["x"] + 1
-        map_y = body_part["y"] + 1
-        danger_map[map_y][map_x] = remaining_length
-        remaining_length -= 1
+    board = game_state["board"]
+    snake = game_state["you"]
+    body = snake["body"]
+    my_head = body[0]
+    my_neck = body[1]
+    tail = body[-1]
+    food_cells = {
+        (food["x"], food["y"])
+        for food in board.get("food", [])
+    }
 
     next_positions = {
         "up": {"x": my_head["x"], "y": my_head["y"] + 1},
@@ -42,8 +28,36 @@ def get_safe_moves(
         "right": {"x": my_head["x"] + 1, "y": my_head["y"]},
     }
 
+    occupied_body = {
+        (part["x"], part["y"])
+        for part in body[:-1]
+    }
+    blocked_opponents = {
+        (part["x"], part["y"])
+        for opponent in board.get("snakes", [])
+        if opponent.get("id") != snake.get("id")
+        for part in opponent["body"]
+    }
+    blocked_hazards = {
+        (hazard["x"], hazard["y"])
+        for hazard in board.get("hazards", [])
+    }
+
     for move, position in next_positions.items():
-        if danger_map[position["y"] + 1][position["x"] + 1] != 0:
+        cell = (position["x"], position["y"])
+        outside_board = not (
+            0 <= position["x"] < board["width"]
+            and 0 <= position["y"] < board["height"]
+        )
+        tail_will_not_move = cell == (tail["x"], tail["y"]) and cell in food_cells
+
+        if (
+            outside_board
+            or cell in occupied_body
+            or tail_will_not_move
+            or cell in blocked_opponents
+            or cell in blocked_hazards
+        ):
             is_move_safe[move] = False
 
     if my_neck["x"] < my_head["x"]:

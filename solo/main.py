@@ -7,8 +7,6 @@
 #
 # This file is the shared Battlesnake entry point.
 
-# 体長に応じて戦略(ぐるぐる or 壁ふさがない)を振り分ける
-
 import typing
 
 from .long_strategy import move_long
@@ -36,6 +34,7 @@ def end(game_state: typing.Dict):
 
 
 def move(game_state: typing.Dict) -> typing.Dict:
+    """Dispatch each turn to the strategy for the current snake length."""
     if game_state["you"]["length"] >= 12:
         return move_long(game_state)
 
