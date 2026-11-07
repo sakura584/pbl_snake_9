@@ -32,16 +32,6 @@ def get_safe_moves(
         (part["x"], part["y"])
         for part in body[:-1]
     }
-    blocked_opponents = {
-        (part["x"], part["y"])
-        for opponent in board.get("snakes", [])
-        if opponent.get("id") != snake.get("id")
-        for part in opponent["body"]
-    }
-    blocked_hazards = {
-        (hazard["x"], hazard["y"])
-        for hazard in board.get("hazards", [])
-    }
 
     for move, position in next_positions.items():
         cell = (position["x"], position["y"])
@@ -55,8 +45,6 @@ def get_safe_moves(
             outside_board
             or cell in occupied_body
             or tail_will_not_move
-            or cell in blocked_opponents
-            or cell in blocked_hazards
         ):
             is_move_safe[move] = False
 
