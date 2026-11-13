@@ -9,8 +9,7 @@
 
 import typing
 
-from .long_strategy import move_long
-from .short_strategy import move_short
+from .lookahead import choose_move
 
 
 def info() -> typing.Dict:
@@ -34,11 +33,8 @@ def end(game_state: typing.Dict):
 
 
 def move(game_state: typing.Dict) -> typing.Dict:
-    """Dispatch each turn to the strategy for the current snake length."""
-    if game_state["you"]["length"] >= 12:
-        return move_long(game_state)
-
-    return move_short(game_state)
+    """Choose a move with two-turn lookahead and length-based strategies."""
+    return choose_move(game_state)
 
 
 if __name__ == "__main__":
