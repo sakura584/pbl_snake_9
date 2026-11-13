@@ -40,9 +40,10 @@ def blocks_wall_to_wall(
 # 体長が12以上のときに使う移動戦略。
 #
 # 1. 壁・自分の体・逆走など、即死する方向を除外する。
-# 2. 体力が13以下でりんごがある場合は、最も近いりんごへ近づく方向を優先する。
-# 3. それ以外の場合は、移動後に行・列を壁から壁までふさぐ方向を避ける。
-# 4. 最後に、残った候補からランダムに1方向を選ぶ。
+# 2. 体力が13未満でりんごがある場合は、最も近いりんごへ近づく方向を優先する。
+# 3. 体力が13以上なら、りんごを取らない方向を優先する。
+# 4. 残った候補から、壁から壁までふさぐ方向を避ける。
+# 5. 最後に、残った候補からランダムに1方向を選ぶ。
 def move_long(game_state: typing.Dict) -> typing.Dict:
     """Strategy for snakes with length 12 or greater."""
     # 共通処理で、壁・自分の体・逆走を避けた候補を取得する。
@@ -58,10 +59,16 @@ def move_long(game_state: typing.Dict) -> typing.Dict:
     board_width = game_state["board"]["width"]
     board_height = game_state["board"]["height"]
     health = game_state["you"]["health"]
-    foods = game_state["board"]["food"]
+    foods = game_state["board"].get("food", [])
+    food_cells = {
+        (food["x"], food["y"])
+        for food in foods
+    }
 
-    # 体力が低いときは、壁ふさぎよりもりんごを優先する。
-    if health <= 13 and foods:
+    # 体力が13未満のときは、壁ふさぎよりもりんごを優先する。
+    # 各候補方向から最も近いりんごまでの距離を計算し、
+    # その距離が最小になる方向だけを残す。
+    if health < 13 and foods:
         # 各候補方向へ進んだ後の位置から、最も近いりんごまでの距離を求める。
         food_distances = {
             move: min(
@@ -79,6 +86,23 @@ def move_long(game_state: typing.Dict) -> typing.Dict:
             if food_distances[move] == nearest_food_distance
         ]
     else:
+        # 体力が13以上のときは、壁ふさぎよりもりんご回避を優先する。
+        # 移動先がりんごではない安全な方向だけを先に残す。
+        if health >= 13:
+            non_food_moves = [
+                move
+                for move in safe_moves
+                if (
+                    next_positions[move]["x"],
+                    next_positions[move]["y"],
+                ) not in food_cells
+            ]
+
+            # りんご以外の安全な方向がある場合だけ候補を置き換える。
+            # すべてりんごの場合は候補を空にせず、生存を優先する。
+            if non_food_moves:
+                safe_moves = non_food_moves
+
         # 各候補方向へ1マス進んだ後の体を作り、
         # 行・列を壁から壁までふさぐ方向を取り除く。
         non_blocking_moves = []
