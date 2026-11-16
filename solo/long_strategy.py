@@ -1,19 +1,9 @@
-import os
 import random
 import typing
 
 # n >= 12のときの壁ふさぎ回避アルゴリズム
 from .common import get_safe_moves
 from .pathfinding import find_path_move, point
-
-
-# longで、しっぽ追跡と壁ふさぎ回避のどちらを先に行うかを選ぶ。
-# PowerShellでは、次のように切り替えられる。
-# $env:LONG_PRIORITY = "tail"
-# $env:LONG_PRIORITY = "wall"
-LONG_PRIORITY = os.environ.get("LONG_PRIORITY", "tail").lower()
-if LONG_PRIORITY not in {"tail", "wall"}:
-    raise ValueError("LONG_PRIORITY must be 'tail' or 'wall'")
 
 
 # 現在位置からりんごまでの距離を計算する。
@@ -94,8 +84,8 @@ def _get_non_blocking_moves(
 # 1. 壁・自分の体・逆走など、即死する方向を除外する。
 # 2. 体力が13未満でりんごがある場合は、最も近いりんごへ近づく方向を優先する。
 # 3. 体力が13以上なら、りんごを取らない方向を優先する。
-# 4. LONG_PRIORITYに応じて、しっぽ追跡と壁ふさぎ回避の順番を変える。
-# 5. どちらの経路も見つからなければ、残った候補からランダムに選ぶ。
+# 4. しっぽへの経路がなければ、壁から壁までふさぐ方向を避ける。
+# 5. 最後に、残った候補からランダムに選ぶ。
 def move_long(game_state: typing.Dict) -> typing.Dict:
     """Strategy for snakes with length 12 or greater."""
     # 共通処理で、壁・自分の体・逆走を避けた候補を取得する。
@@ -158,49 +148,27 @@ def move_long(game_state: typing.Dict) -> typing.Dict:
         # しっぽを追うための目的地は、現在の最後尾のマスにする。
         tail = point(game_state["you"]["body"][-1])
 
-        if LONG_PRIORITY == "tail":
-            # しっぽ優先では、まずしっぽへの経路を探す。
-            # この時点では、移動後に壁をふさぐかどうかはまだ判定しない。
-            tail_move = find_path_move(
-                game_state,
-                safe_moves,
-                {tail},
-                avoid_food=True,
-            )
-            if tail_move is not None:
-                print(f"MOVE {game_state['turn']}: {tail_move}")
-                return {"move": tail_move}
+        # まず、りんごを避けながらしっぽへの経路を探す。
+        # longでは、壁ふさぎよりもしっぽ追跡を優先する。
+        tail_move = find_path_move(
+            game_state,
+            safe_moves,
+            {tail},
+            avoid_food=True,
+        )
+        if tail_move is not None:
+            print(f"MOVE {game_state['turn']}: {tail_move}")
+            return {"move": tail_move}
 
-            # しっぽへの経路がない場合だけ、壁ふさぎを避ける。
-            safe_moves = _get_non_blocking_moves(
-                game_state,
-                safe_moves,
-                next_positions,
-                foods,
-                board_width,
-                board_height,
-            )
-        else:
-            # 壁優先では、先に壁ふさぎを起こさない方向へ絞る。
-            safe_moves = _get_non_blocking_moves(
-                game_state,
-                safe_moves,
-                next_positions,
-                foods,
-                board_width,
-                board_height,
-            )
-
-            # 壁をふさがない候補の中で、しっぽへの経路を探す。
-            tail_move = find_path_move(
-                game_state,
-                safe_moves,
-                {tail},
-                avoid_food=True,
-            )
-            if tail_move is not None:
-                print(f"MOVE {game_state['turn']}: {tail_move}")
-                return {"move": tail_move}
+        # しっぽへの経路がない場合だけ、壁ふさぎを避ける。
+        safe_moves = _get_non_blocking_moves(
+            game_state,
+            safe_moves,
+            next_positions,
+            foods,
+            board_width,
+            board_height,
+        )
 
     # 条件を満たした候補の中からランダムに選ぶ。
     next_move = random.choice(safe_moves)
