@@ -33,7 +33,7 @@ def _current_strategy(game_state: typing.Dict) -> typing.Dict:
 # 現在の状態から、予測で調べる候補方向を作る。
 #
 # 予測では候補を1つに絞らず、候補をすべて調べる。
-# ただし、体力13以上でりんご以外の安全な方向がある場合は、
+# ただし、体力11以上でりんご以外の安全な方向がある場合は、
 # 確定したりんご回避ルールに従ってりんご方向を候補から除外する。
 def _candidate_moves(game_state: typing.Dict) -> typing.List[str]:
     """Return all moves that the lookahead is allowed to examine."""
@@ -42,7 +42,7 @@ def _candidate_moves(game_state: typing.Dict) -> typing.List[str]:
         return []
 
     health = game_state["you"]["health"]
-    if health < 13:
+    if health < 11:
         return safe_moves
 
     food_cells = {

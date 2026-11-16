@@ -82,8 +82,8 @@ def _get_non_blocking_moves(
 # 体長が12以上のときに使う移動戦略。
 #
 # 1. 壁・自分の体・逆走など、即死する方向を除外する。
-# 2. 体力が13未満でりんごがある場合は、最も近いりんごへ近づく方向を優先する。
-# 3. 体力が13以上なら、りんごを取らない方向を優先する。
+# 2. 体力が11未満でりんごがある場合は、最も近いりんごへ近づく方向を優先する。
+# 3. 体力が11以上なら、りんごを取らない方向を優先する。
 # 4. しっぽへの経路がなければ、壁から壁までふさぐ方向を避ける。
 # 5. 最後に、残った候補からランダムに選ぶ。
 def move_long(game_state: typing.Dict) -> typing.Dict:
@@ -107,10 +107,10 @@ def move_long(game_state: typing.Dict) -> typing.Dict:
         for food in foods
     }
 
-    # 体力が13未満のときは、壁ふさぎよりもりんごを優先する。
+    # 体力が11未満のときは、壁ふさぎよりもりんごを優先する。
     # 各候補方向から最も近いりんごまでの距離を計算し、
     # その距離が最小になる方向だけを残す。
-    if health < 13 and foods:
+    if health < 11 and foods:
         # 各候補方向へ進んだ後の位置から、最も近いりんごまでの距離を求める。
         food_distances = {
             move: min(
@@ -128,9 +128,9 @@ def move_long(game_state: typing.Dict) -> typing.Dict:
             if food_distances[move] == nearest_food_distance
         ]
     else:
-        # 体力が13以上のときは、壁ふさぎよりもりんご回避を優先する。
+        # 体力が11以上のときは、壁ふさぎよりもりんご回避を優先する。
         # 移動先がりんごではない安全な方向だけを先に残す。
-        if health >= 13:
+        if health >= 11:
             non_food_moves = [
                 move
                 for move in safe_moves
